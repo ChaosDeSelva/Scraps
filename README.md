@@ -8,6 +8,10 @@ Click the tray icon in the menu bar or press **Control–Option–Space** to cap
 
 Choose **Snippet**, **Note**, **Question**, **Reminder**, or **Other** when capturing or editing. Each type has its own library filter. Reminder items are a way to organize things to revisit; this version does not schedule notifications.
 
+## Install
+
+[Download Scraps 0.1.0 for Apple silicon](https://github.com/ChaosDeSelva/Scraps/releases/download/v0.1.0/Scraps-0.1.0-arm64.dmg). Requires macOS 14 or later. Open the signed and notarized disk image and drag Scraps into Applications.
+
 ## Run
 
 Requires macOS 14 or later and Apple's Command Line Tools. There are no third-party dependencies or network services.
@@ -41,7 +45,7 @@ Tests cover Unicode and whitespace fidelity, annotations, search and filters, sa
 
 The static website is in `docs/`, published with GitHub Pages from the `main` branch. It has no JavaScript, analytics, or third-party assets. Screenshots are rendered with sample content using `bash scripts/render-ui.sh`.
 
-The build script produces a locally ad-hoc-signed app. Developer ID signing, notarization, and release downloads are handled separately; no signing identities, certificates, or credentials belong in this repository. The website currently points to source and build instructions. When a signed release is available, its download link can be added to `docs/index.html`.
+The build script produces a locally ad-hoc-signed app. Developer ID signing, notarization, and release downloads are handled separately; no signing identities, certificates, or credentials belong in this repository. The website links to the signed and notarized release as well as source and build instructions.
 
 ## License
 
