@@ -43,8 +43,6 @@ The static website is in `docs/`, published with GitHub Pages from the `main` br
 
 The build script produces a locally ad-hoc-signed app. Developer ID signing, notarization, and release downloads are handled separately; no signing identities, certificates, or credentials belong in this repository. The website currently points to source and build instructions. When a signed release is available, its download link can be added to `docs/index.html`.
 
-Visual direction: warm paper, olive text, yellow actions, restrained outlines, and roomy navigation, inspired by the [PostHog design reference](https://getdesign.md/posthog/design-md). This is an independent app.
-
 ## License
 
 [MIT](LICENSE).
