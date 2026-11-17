@@ -34,9 +34,9 @@ Choose **Ask AI → Summarize**, **Bullet points**, or **Chat about this item**.
 
 ## Install
 
-[Download Scraps 0.1.0 for Apple silicon](https://github.com/ChaosDeSelva/Scraps/releases/download/v0.1.0/Scraps-0.1.0-arm64.dmg). Requires macOS 14 or later. Open the signed and notarized disk image and drag Scraps into Applications.
+[Download Scraps 0.2.0 for Apple silicon](https://github.com/ChaosDeSelva/Scraps/releases/download/v0.2.0/Scraps-0.2.0-arm64.dmg). Requires macOS 14 or later. Open the signed and notarized disk image and drag Scraps into Applications.
 
-**The 0.1.0 download is the original capture release. Appearance settings, custom shortcuts, recordings, transcription, and AI are currently available by building the latest source; a new signed release is handled separately.**
+**The 0.2.0 download is the original capture release. Appearance settings, custom shortcuts, recordings, transcription, and AI are currently available by building the latest source; a new signed release is handled separately.**
 
 ## Run
 
