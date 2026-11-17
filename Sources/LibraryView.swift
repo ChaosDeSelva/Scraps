@@ -3,7 +3,10 @@ import AppKit
 
 struct LibraryView: View {
     @ObservedObject var store: ScrapStore
+    @ObservedObject private var appearance = AppearanceSettings.shared
+    @ObservedObject private var shortcuts = ShortcutSettings.shared
     let capture: () -> Void
+    var settings: () -> Void = {}
     @FocusState private var searchFocused: Bool
 
     var body: some View {
@@ -23,7 +26,7 @@ struct LibraryView: View {
             }
         }
         .frame(minWidth: 1040, minHeight: 670)
-        .background(Palette.canvas).foregroundStyle(Palette.ink).preferredColorScheme(.light)
+        .background(Palette.canvas).foregroundStyle(Palette.ink)
         .onReceive(NotificationCenter.default.publisher(for: .scrapsFocusSearch)) { _ in searchFocused = true }
         .alert("Couldn’t save your changes", isPresented: Binding(get: { store.errorMessage != nil }, set: { if !$0 { store.errorMessage = nil } })) {
             Button("OK") { store.errorMessage = nil }
@@ -42,7 +45,6 @@ struct LibraryView: View {
             Button(action: capture) {
                 HStack {
                     Image(systemName: "plus"); Text("Quick capture"); Spacer()
-                    if store.shortcutAvailable { Text("⌃⌥␣").font(.system(size: 11, design: .monospaced)).opacity(0.6) }
                 }
             }.buttonStyle(PaperButton(primary: true)).padding(.horizontal, 16).padding(.bottom, 28)
             ScrollView {
@@ -67,6 +69,18 @@ struct LibraryView: View {
             VStack(alignment: .leading, spacing: 14) {
                 navRow(.trash, symbol: "trash")
                 Rectangle().fill(Palette.line).frame(height: 1)
+                Menu {
+                    Picker("Appearance", selection: $appearance.choice) {
+                        ForEach(AppAppearance.allCases) { Text($0.title).tag($0) }
+                    }
+                } label: {
+                    Label(appearance.choice.title, systemImage: appearance.choice.symbol)
+                        .font(.system(size: 12)).foregroundStyle(Palette.body)
+                }
+                .menuStyle(.borderlessButton).padding(.horizontal, 10)
+                .help("Appearance").accessibilityLabel("Appearance: " + appearance.choice.title)
+                Button(action: settings) { Label("Keyboard shortcut…", systemImage: "keyboard") }
+                    .buttonStyle(.plain).font(.system(size: 12)).foregroundStyle(Palette.body).padding(.horizontal, 10)
                 HStack(spacing: 7) {
                     Circle().fill(Palette.green).frame(width: 6, height: 6)
                     Text("Stored on this Mac").font(.system(size: 11, weight: .medium)).foregroundStyle(Palette.body)
@@ -190,7 +204,7 @@ struct LibraryView: View {
             }
             if store.filter != .trash {
                 Button(action: capture) { Label("Capture something", systemImage: "plus") }.buttonStyle(PaperButton(primary: true))
-                Text(store.shortcutAvailable ? "⌃⌥Space works from any app" : "Click the tray icon in your menu bar")
+                Text(store.shortcutAvailable ? "\(shortcuts.shortcut.displayName) works from any app" : "Click the tray icon in your menu bar")
                     .font(.system(size: 11, design: .monospaced)).foregroundStyle(Palette.muted)
             }
         }.padding(35).frame(maxWidth: .infinity, maxHeight: .infinity).background(Palette.paper)
@@ -347,7 +361,7 @@ struct EditAnnotationView: View {
                     .disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
         }.padding(28).frame(width: 570, height: 340).background(Palette.canvas)
-            .foregroundStyle(Palette.ink).preferredColorScheme(.light).interactiveDismissDisabled()
+            .foregroundStyle(Palette.ink).interactiveDismissDisabled()
     }
 }
 

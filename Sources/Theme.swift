@@ -1,18 +1,72 @@
 import SwiftUI
 import AppKit
 
+enum AppAppearance: String, CaseIterable, Identifiable {
+    case system, light, dark
+
+    var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .system: return "Follow macOS"
+        case .light: return "Light"
+        case .dark: return "Dark"
+        }
+    }
+    var symbol: String {
+        switch self {
+        case .system: return "circle.lefthalf.filled"
+        case .light: return "sun.max"
+        case .dark: return "moon"
+        }
+    }
+    var nativeAppearance: NSAppearance? {
+        switch self {
+        case .system: return nil
+        case .light: return NSAppearance(named: .aqua)
+        case .dark: return NSAppearance(named: .darkAqua)
+        }
+    }
+}
+
+@MainActor final class AppearanceSettings: ObservableObject {
+    static let shared = AppearanceSettings()
+    private let defaults: UserDefaults
+    @Published var choice: AppAppearance {
+        didSet {
+            defaults.set(choice.rawValue, forKey: "appearance")
+            apply()
+        }
+    }
+
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+        choice = AppAppearance(rawValue: defaults.string(forKey: "appearance") ?? "") ?? .system
+    }
+
+    func apply() { NSApp.appearance = choice.nativeAppearance }
+}
+
 enum Palette {
-    static let canvas = Color(hex: 0xF3F1E9)
-    static let sidebar = Color(hex: 0xEAE8DD)
-    static let paper = Color(hex: 0xFFFEFA)
-    static let ink = Color(hex: 0x25271E)
-    static let body = Color(hex: 0x4D5045)
-    static let muted = Color(hex: 0x727466)
-    static let line = Color(hex: 0xD9DACD)
+    static let canvas = adaptive(light: 0xF3F1E9, dark: 0x1C201A)
+    static let sidebar = adaptive(light: 0xEAE8DD, dark: 0x171B16)
+    static let paper = adaptive(light: 0xFFFEFA, dark: 0x252A22)
+    static let ink = adaptive(light: 0x25271E, dark: 0xF2F1E8)
+    static let body = adaptive(light: 0x4D5045, dark: 0xCBD0C0)
+    static let muted = adaptive(light: 0x65695B, dark: 0xA0AA97)
+    static let line = adaptive(light: 0xD9DACD, dark: 0x444D3D)
     static let yellow = Color(hex: 0xF7A501)
-    static let selected = Color(hex: 0xF6E4B5)
-    static let green = Color(hex: 0x397052)
-    static let code = Color(hex: 0x292D25)
+    static let onAccent = Color(hex: 0x25271E)
+    static let selected = adaptive(light: 0xF6E4B5, dark: 0x51411F)
+    static let green = adaptive(light: 0x397052, dark: 0x7BC89C)
+    static let code = adaptive(light: 0x292D25, dark: 0x171B15)
+
+    private static func adaptive(light: UInt32, dark: UInt32) -> Color {
+        Color(nsColor: NSColor(name: nil) { appearance in
+            let hex = appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? dark : light
+            return NSColor(srgbRed: Double((hex >> 16) & 255) / 255,
+                           green: Double((hex >> 8) & 255) / 255, blue: Double(hex & 255) / 255, alpha: 1)
+        })
+    }
 }
 
 extension Color {
@@ -30,7 +84,7 @@ struct PaperButton: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.system(size: compact ? 12 : 13, weight: .semibold))
-            .foregroundStyle(Palette.ink)
+            .foregroundStyle(primary ? Palette.onAccent : Palette.ink)
             .padding(.horizontal, compact ? 10 : 14)
             .padding(.vertical, compact ? 7 : 10)
             .background(primary ? Palette.yellow : Palette.paper)
@@ -71,7 +125,7 @@ struct BrandMark: View {
     var size: CGFloat = 40
     var body: some View {
         Image(systemName: "paperclip").font(.system(size: size * 0.53, weight: .semibold))
-            .foregroundStyle(Palette.ink).frame(width: size, height: size)
+            .foregroundStyle(Palette.onAccent).frame(width: size, height: size)
             .background(Palette.yellow).clipShape(RoundedRectangle(cornerRadius: 9))
             .overlay(RoundedRectangle(cornerRadius: 9).stroke(Palette.ink.opacity(0.16), lineWidth: 1))
             .rotationEffect(.degrees(-6)).accessibilityHidden(true)

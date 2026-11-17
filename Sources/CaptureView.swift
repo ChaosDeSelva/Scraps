@@ -68,7 +68,7 @@ struct CaptureView: View {
             }.padding(22)
         }
         .frame(width: 470, height: 620).background(Palette.canvas)
-        .foregroundStyle(Palette.ink).preferredColorScheme(.light)
+        .foregroundStyle(Palette.ink)
         .onAppear { contentFocused = true }
     }
 
@@ -160,7 +160,7 @@ struct EditItemView: View {
                     .buttonStyle(PaperButton(primary: true)).keyboardShortcut(.return, modifiers: .command).disabled(!draft.canSave)
             }
         }.padding(28).frame(width: 690, height: 670).background(Palette.canvas)
-            .foregroundStyle(Palette.ink).preferredColorScheme(.light).interactiveDismissDisabled()
+            .foregroundStyle(Palette.ink).interactiveDismissDisabled()
             .confirmationDialog("Discard your changes?", isPresented: $confirmDiscard) {
                 Button("Discard changes", role: .destructive) { dismiss() }
                 Button("Keep editing", role: .cancel) {}

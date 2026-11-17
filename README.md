@@ -4,9 +4,13 @@ A small local macOS menu-bar app for snippets, notes, questions, reminders, and 
 
 [Website](https://chaosdeselva.github.io/Scraps/) · [Source](https://github.com/ChaosDeSelva/Scraps)
 
-Click the tray icon in the menu bar or press **Control–Option–Space** to capture something. Paste content, optionally add a title and comma-separated tags, and save with **Command–Return**. The library supports search across titles, content, sources, tags, and annotations. Each item keeps its original saved date; edits and annotations are dated separately.
+Click the tray icon in the menu bar or press **Control–Option–Space** (the default shortcut) to capture something. Paste content, optionally add a title and comma-separated tags, and save with **Command–Return**. The library supports search across titles, content, sources, tags, and annotations. Each item keeps its original saved date; edits and annotations are dated separately.
 
 Choose **Snippet**, **Note**, **Question**, **Reminder**, or **Other** when capturing or editing. Each type has its own library filter. Reminder items are a way to organize things to revisit; this version does not schedule notifications.
+
+Choose **Light**, **Dark**, or **Follow macOS** from the appearance control at the bottom of the library sidebar, **View → Appearance**, or the menu-bar icon’s right-click menu. Your choice is saved and applies to quick capture and editing windows too. Follow macOS is the default.
+
+Change the global capture shortcut in **Scraps → Settings…** (**Command–Comma**) or **Keyboard shortcut…** in the sidebar. Click the shortcut and press a combination containing Control, Option, or Command. Escape cancels recording; **Reset to default** restores Control–Option–Space. If a shortcut is already taken, Scraps keeps the previous working shortcut.
 
 ## Install
 
@@ -39,7 +43,7 @@ Dedicated encrypted secret storage, recordings, transcription, and Apple Notes i
 bash scripts/test.sh
 ```
 
-Tests cover Unicode and whitespace fidelity, annotations, search and filters, saved-date preservation, trash/restore, reopening the database, failed writes, and unsupported or corrupt libraries. A QA app with bundle identifier `local.scraps.qa` uses a separate `Scraps-QA` data folder.
+Tests cover Unicode and whitespace fidelity, annotations, search and filters, saved-date preservation, trash/restore, reopening the database, failed writes, unsupported or corrupt libraries, appearance persistence and contrast, and shortcut validation and conflict recovery. A QA app with bundle identifier `local.scraps.qa` uses a separate `Scraps-QA` data folder.
 
 ## Website and releases
 

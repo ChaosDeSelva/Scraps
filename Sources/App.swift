@@ -12,17 +12,19 @@ import Carbon
     }
 }
 
-@MainActor final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSPopoverDelegate {
+@MainActor final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSPopoverDelegate, NSMenuDelegate {
     private var store: ScrapStore!
     private var statusItem: NSStatusItem!
     private var popover = NSPopover()
     private var libraryWindow: NSWindow?
+    private var settingsWindow: NSWindow?
     private var hotKey: EventHotKeyRef?
     private var hotKeyHandler: EventHandlerRef?
+    private var activeShortcut: CaptureShortcut?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
-        NSApp.appearance = NSAppearance(named: .aqua)
+        AppearanceSettings.shared.apply()
         if Bundle.main.bundleIdentifier == "local.scraps.qa" {
             let url = ScrapStore.defaultURL.deletingLastPathComponent().deletingLastPathComponent()
                 .appendingPathComponent("Scraps-QA").appendingPathComponent("Scraps.sqlite")
@@ -53,7 +55,7 @@ import Carbon
         let image = NSImage(systemSymbolName: "tray.and.arrow.down", accessibilityDescription: "Scraps")
         image?.isTemplate = true
         button.image = image
-        button.toolTip = "Scraps — Quick capture (⌃⌥Space)"
+        button.toolTip = "Scraps — Quick capture"
         button.setAccessibilityLabel("Scraps quick capture")
         button.target = self
         button.action = #selector(statusClicked)
@@ -65,6 +67,8 @@ import Carbon
             let menu = NSMenu()
             addItem("Quick capture", action: #selector(toggleCapture), to: menu)
             addItem("Open library", action: #selector(showLibrary), to: menu)
+            menu.addItem(appearanceMenuItem())
+            addItem("Settings…", action: #selector(showSettings), to: menu)
             menu.addItem(.separator())
             addItem("Quit Scraps", action: #selector(quit), to: menu)
             statusItem.menu = menu
@@ -113,7 +117,8 @@ import Carbon
             window.backgroundColor = NSColor(Palette.canvas)
             window.isReleasedWhenClosed = false
             window.delegate = self
-            window.contentViewController = NSHostingController(rootView: LibraryView(store: store, capture: { [weak self] in self?.toggleCapture() }))
+            window.contentViewController = NSHostingController(rootView: LibraryView(store: store,
+                capture: { [weak self] in self?.toggleCapture() }, settings: { [weak self] in self?.showSettings() }))
             window.setFrameAutosaveName("ScrapsLibrary")
             window.center()
             libraryWindow = window
@@ -133,6 +138,22 @@ import Carbon
 
     @objc private func quit() { NSApp.terminate(nil) }
 
+    @objc private func showSettings() {
+        popover.performClose(nil)
+        if settingsWindow == nil {
+            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 480, height: 350),
+                                  styleMask: [.titled, .closable], backing: .buffered, defer: false)
+            window.title = "Scraps Settings"
+            window.identifier = NSUserInterfaceItemIdentifier("ScrapsSettings")
+            window.isReleasedWhenClosed = false
+            window.contentViewController = NSHostingController(rootView: SettingsView())
+            window.center()
+            settingsWindow = window
+        }
+        NSApp.activate(ignoringOtherApps: true)
+        settingsWindow?.makeKeyAndOrderFront(nil)
+    }
+
     private func configureMenu() {
         let menu = NSMenu()
         let appMenu = NSMenu()
@@ -140,6 +161,7 @@ import Carbon
         appRoot.submenu = appMenu
         menu.addItem(appRoot)
         addItem("About Scraps", action: #selector(about), to: appMenu)
+        addItem("Settings…", action: #selector(showSettings), key: ",", to: appMenu)
         appMenu.addItem(.separator())
         addItem("Quit Scraps", action: #selector(quit), key: "q", to: appMenu)
 
@@ -169,6 +191,12 @@ import Carbon
         edit.addItem(.separator())
         addItem("Search library", action: #selector(focusSearch), key: "f", to: edit)
 
+        let view = NSMenu(title: "View")
+        let viewRoot = NSMenuItem(title: "View", action: nil, keyEquivalent: "")
+        viewRoot.submenu = view
+        view.addItem(appearanceMenuItem())
+        menu.addItem(viewRoot)
+
         let windowMenu = NSMenu(title: "Window")
         let windowRoot = NSMenuItem(title: "Window", action: nil, keyEquivalent: "")
         windowRoot.submenu = windowMenu
@@ -185,10 +213,36 @@ import Carbon
         menu.addItem(item)
     }
 
+    private func appearanceMenuItem() -> NSMenuItem {
+        let root = NSMenuItem(title: "Appearance", action: nil, keyEquivalent: "")
+        let menu = NSMenu(title: "Appearance")
+        menu.delegate = self
+        for choice in AppAppearance.allCases {
+            let item = NSMenuItem(title: choice.title, action: #selector(changeAppearance(_:)), keyEquivalent: "")
+            item.representedObject = choice.rawValue
+            item.target = self
+            menu.addItem(item)
+        }
+        root.submenu = menu
+        return root
+    }
+
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        for item in menu.items {
+            guard let raw = item.representedObject as? String, let choice = AppAppearance(rawValue: raw) else { continue }
+            item.state = AppearanceSettings.shared.choice == choice ? .on : .off
+        }
+    }
+
+    @objc private func changeAppearance(_ sender: NSMenuItem) {
+        guard let raw = sender.representedObject as? String, let choice = AppAppearance(rawValue: raw) else { return }
+        AppearanceSettings.shared.choice = choice
+    }
+
     @objc private func about() {
         NSApp.orderFrontStandardAboutPanel(options: [
             .applicationName: "Scraps", .applicationVersion: "0.1.0",
-            .credits: NSAttributedString(string: "A local home for snippets, notes, and the context worth keeping.\n" + (store.shortcutAvailable ? "Quick capture: Control–Option–Space (registered)" : "The global shortcut is unavailable. Click the menu-bar icon to capture."))
+            .credits: NSAttributedString(string: "A local home for snippets, notes, and the context worth keeping.\n" + (store.shortcutAvailable ? "Quick capture: \(ShortcutSettings.shared.shortcut.displayName) (registered)" : "The global shortcut is unavailable. Choose another in Settings or click the menu-bar icon to capture."))
         ])
     }
 
@@ -199,15 +253,42 @@ import Carbon
             guard let data else { return OSStatus(eventNotHandledErr) }
             // Carbon dispatches application hotkeys on the main event loop.
             MainActor.assumeIsolated {
-                Unmanaged<AppDelegate>.fromOpaque(data).takeUnretainedValue().toggleCapture()
+                if ShortcutSettings.shared.isRecording {
+                    ShortcutSettings.shared.isRecording = false
+                } else {
+                    Unmanaged<AppDelegate>.fromOpaque(data).takeUnretainedValue().toggleCapture()
+                }
             }
             return noErr
         }, 1, &type, pointer, &hotKeyHandler)
-        guard result == noErr else { store.shortcutAvailable = false; return }
+        ShortcutSettings.shared.connect(register: { [weak self] shortcut in
+            guard result == noErr else { return result }
+            return self?.registerShortcut(shortcut) ?? OSStatus(eventNotHandledErr)
+        }, didChange: { [weak self] in
+            guard let self else { return }
+            self.store.shortcutAvailable = ShortcutSettings.shared.isRegistered
+            self.statusItem.button?.toolTip = ShortcutSettings.shared.isRegistered
+                ? "Scraps — Quick capture (\(ShortcutSettings.shared.shortcut.displayName))"
+                : "Scraps — click to capture (choose a shortcut in Settings)"
+        })
+    }
+
+    private func registerShortcut(_ shortcut: CaptureShortcut) -> OSStatus {
+        if hotKey != nil && activeShortcut == shortcut { return noErr }
         let id = EventHotKeyID(signature: OSType(0x53435250), id: 1)
-        let registered = RegisterEventHotKey(UInt32(kVK_Space), UInt32(controlKey | optionKey), id,
-                                             GetApplicationEventTarget(), 0, &hotKey)
-        store.shortcutAvailable = registered == noErr
-        if registered != noErr { statusItem.button?.toolTip = "Scraps — click to capture (shortcut unavailable)" }
+        var replacement: EventHotKeyRef?
+        let status = RegisterEventHotKey(shortcut.keyCode, shortcut.modifiers, id,
+                                        GetApplicationEventTarget(), 0, &replacement)
+        guard status == noErr else { return status }
+        if let hotKey {
+            let removal = UnregisterEventHotKey(hotKey)
+            if removal != noErr {
+                if let replacement { UnregisterEventHotKey(replacement) }
+                return removal
+            }
+        }
+        hotKey = replacement
+        activeShortcut = shortcut
+        return noErr
     }
 }

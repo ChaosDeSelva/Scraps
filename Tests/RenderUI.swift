@@ -26,21 +26,31 @@ import SwiftUI
         }
         let output = URL(fileURLWithPath: CommandLine.arguments[1])
         try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
-        try render(LibraryView(store: store, capture: {}), size: NSSize(width: 1200, height: 800), to: output.appendingPathComponent("library.png"))
-        try render(LibraryView(store: store, capture: {}), size: NSSize(width: 1040, height: 680), to: output.appendingPathComponent("library-minimum.png"))
         store.draft.title = "A useful command"
         store.draft.content = "npm run dev"
         store.draft.tags = "dev, project-name"
-        try render(CaptureView(store: store, openLibrary: {}, didSave: {}), size: NSSize(width: 470, height: 620), to: output.appendingPathComponent("capture.png"))
-        print("Rendered library at default and minimum sizes, plus quick capture.")
+        for (name, appearance) in [("", NSAppearance.Name.aqua), ("-dark", .darkAqua)] {
+            app.appearance = NSAppearance(named: appearance)
+            try render(LibraryView(store: store, capture: {}), size: NSSize(width: 1200, height: 800), appearance: appearance, to: output.appendingPathComponent("library\(name).png"))
+            try render(LibraryView(store: store, capture: {}), size: NSSize(width: 1040, height: 680), appearance: appearance, to: output.appendingPathComponent("library-minimum\(name).png"))
+            try render(CaptureView(store: store, openLibrary: {}, didSave: {}), size: NSSize(width: 470, height: 620), appearance: appearance, to: output.appendingPathComponent("capture\(name).png"))
+            try render(SettingsView(), size: NSSize(width: 480, height: 350), appearance: appearance, to: output.appendingPathComponent("settings\(name).png"))
+            if let item = store.selectedItem {
+                try render(EditItemView(store: store, item: item), size: NSSize(width: 690, height: 670), appearance: appearance, to: output.appendingPathComponent("edit-item\(name).png"))
+                if let annotation = item.annotations.first {
+                    try render(EditAnnotationView(store: store, itemID: item.id, annotation: annotation), size: NSSize(width: 570, height: 340), appearance: appearance, to: output.appendingPathComponent("edit-note\(name).png"))
+                }
+            }
+        }
+        print("Rendered library, quick capture and item editor in light and dark appearances.")
     }
 
-    @MainActor static func render<V: View>(_ view: V, size: NSSize, to url: URL) throws {
+    @MainActor static func render<V: View>(_ view: V, size: NSSize, appearance: NSAppearance.Name, to url: URL) throws {
         let host = NSHostingView(rootView: view)
         host.frame = NSRect(origin: .zero, size: size)
         let window = NSWindow(contentRect: host.frame, styleMask: [.borderless], backing: .buffered, defer: false)
         window.contentView = host
-        window.appearance = NSAppearance(named: .aqua)
+        window.appearance = NSAppearance(named: appearance)
         host.layoutSubtreeIfNeeded()
         RunLoop.main.run(until: Date().addingTimeInterval(0.2))
         host.layoutSubtreeIfNeeded()
