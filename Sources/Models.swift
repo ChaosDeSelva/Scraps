@@ -43,6 +43,7 @@ struct Scrap: Codable, Identifiable, Equatable {
     var isPinned = false
     var trashedAt: Date?
     var annotations: [Annotation] = []
+    var recording: RecordingAttachment?
 
     var preview: String {
         content.split(whereSeparator: \.isNewline).joined(separator: " ")
@@ -98,7 +99,7 @@ struct CaptureDraft {
 }
 
 enum LibraryFilter: Hashable {
-    case all, snippets, notes, questions, reminders, other, pinned, trash, tag(String)
+    case all, snippets, notes, questions, reminders, recordings, other, pinned, trash, tag(String)
 
     var title: String {
         switch self {
@@ -107,6 +108,7 @@ enum LibraryFilter: Hashable {
         case .notes: return "Notes"
         case .questions: return "Questions"
         case .reminders: return "Reminders"
+        case .recordings: return "Recordings"
         case .other: return "Other"
         case .pinned: return "Pinned"
         case .trash: return "Trash"
@@ -123,10 +125,30 @@ enum LibraryFilter: Hashable {
         case .notes: return item.kind == .note
         case .questions: return item.kind == .question
         case .reminders: return item.kind == .reminder
+        case .recordings: return item.recording != nil
         case .other: return item.kind == .other
         case .pinned: return item.isPinned
         case .tag(let name): return item.tags.contains(name)
         case .trash: return false
         }
     }
+}
+
+
+enum RecordingSource: String, Codable, CaseIterable, Identifiable {
+    case microphone, system, both
+    var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .microphone: return "Microphone"
+        case .system: return "Mac audio"
+        case .both: return "Microphone + Mac audio"
+        }
+    }
+}
+
+struct RecordingAttachment: Codable, Equatable {
+    var id: UUID
+    var duration: TimeInterval
+    var source: RecordingSource
 }

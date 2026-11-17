@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Scraps is a free, open-source Mac menu-bar app for snippets, notes, questions, reminders, and the context worth keeping. Everything stays on your Mac.">
+  <meta name="description" content="Scraps is a free, open-source Mac menu-bar app for snippets, notes, questions, reminders, and the context worth keeping. Local storage with optional AI connections.">
   <meta name="theme-color" content="#f3f1e9">
   <meta property="og:title" content="Scraps — Keep the useful bits">
   <meta property="og:description" content="A little home for snippets, notes, and your own context. Native to the Mac. Local by design. Open source.">
@@ -34,6 +34,7 @@
         <a class="button secondary" href="#build">Build it on your Mac <span aria-hidden="true">↓</span></a>
       </div>
       <p class="release-note">macOS 14+ <span aria-hidden="true">·</span> MIT licensed <span aria-hidden="true">·</span> Version 0.1.0 for Apple silicon</p>
+      <p class="release-note">Recording, transcription, AI, themes, and custom shortcuts are available in the latest source. They are not yet included in the 0.1.0 download.</p>
       <figure class="library-preview" id="the-app">
         <div class="window-bar" aria-hidden="true"><span class="window-dots">● ● ●</span><span>Scraps / Your local library</span><span class="window-note">a little more organized.</span></div>
         <a href="assets/library.png" aria-label="View the full-size Scraps library screenshot"><img src="assets/library.png" width="1200" height="800" alt="Scraps library with roomy navigation for Snippets, Notes, Questions, Reminders, and Other; a saved command has tags, dates, and a separate notes section."></a>
@@ -58,13 +59,13 @@
     <section class="local-section wrap">
       <div><p class="eyebrow">Your Mac. Your library.</p><h2>A notebook with<br> no account to make.</h2></div>
       <div class="local-details">
-        <p>Scraps stores its library locally and makes no network requests. No sync service, analytics, or background clipboard collection.</p>
+        <p>Scraps stores its library on your Mac. No sync service, analytics, or background clipboard collection. Optional AI in the latest source sends only the item context you choose, when you press Send.</p>
         <ul><li>Native SwiftUI and AppKit interface</li><li>Local SQLite storage with recoverable trash</li><li>Source you can read, change, and build yourself</li></ul>
-        <p class="small-note">Local storage is unencrypted in this first version. Dedicated credential storage and recordings aren’t included yet.</p>
+        <p class="small-note">The latest source adds microphone and Mac audio recording, on-device transcription on supported Macs, and optional Codex, Claude Code, or API-key connections. API keys stay in Keychain. Notes and recordings are stored locally without app-level encryption.</p>
       </div>
     </section>
     <section class="build-section wrap" id="build">
-      <div class="build-copy"><p class="eyebrow">Make yourself at home</p><h2>Build your own<br> little stash.</h2><p>You’ll need macOS 14 or later and Apple’s Command Line Tools. There are no third-party app dependencies.</p><p class="small-note"><a href="https://github.com/ChaosDeSelva/Scraps/releases/download/v0.1.0/Scraps-0.1.0-arm64.dmg">Download the signed and notarized app</a>, open the disk image, and drag Scraps into Applications. The local source build uses an ad-hoc signature.</p><a class="text-link" href="https://github.com/ChaosDeSelva/Scraps/blob/main/README.md">Read the build instructions <span aria-hidden="true">↗</span></a></div>
+      <div class="build-copy"><p class="eyebrow">Make yourself at home</p><h2>Build your own<br> little stash.</h2><p>Build with Apple’s Command Line Tools or Xcode and the macOS 26 SDK or later. The app runs on macOS 14+, with newer audio features available on supported systems. There are no third-party app library dependencies.</p><p class="small-note"><a href="https://github.com/ChaosDeSelva/Scraps/releases/download/v0.1.0/Scraps-0.1.0-arm64.dmg">Download the signed and notarized app</a>, open the disk image, and drag Scraps into Applications. The local source build uses an ad-hoc signature.</p><a class="text-link" href="https://github.com/ChaosDeSelva/Scraps/blob/main/README.md">Read the build instructions <span aria-hidden="true">↗</span></a></div>
       <div class="terminal"><div class="terminal-header"><span>TERMINAL</span><span>build from source</span></div><pre><code>git clone https://github.com/ChaosDeSelva/Scraps.git
 cd Scraps
 bash scripts/build.sh

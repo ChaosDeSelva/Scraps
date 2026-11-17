@@ -7,6 +7,7 @@ struct LibraryView: View {
     @ObservedObject private var shortcuts = ShortcutSettings.shared
     let capture: () -> Void
     var settings: () -> Void = {}
+    var record: () -> Void = {}
     @FocusState private var searchFocused: Bool
 
     var body: some View {
@@ -55,6 +56,7 @@ struct LibraryView: View {
                     navRow(.notes, symbol: "note.text")
                     navRow(.questions, symbol: "questionmark.circle")
                     navRow(.reminders, symbol: "bell")
+                    navRow(.recordings, symbol: "waveform")
                     navRow(.other, symbol: "square.grid.2x2")
                     navRow(.pinned, symbol: "pin")
                     Eyebrow(text: "Tags").padding(.leading, 14).padding(.top, 27).padding(.bottom, 9)
@@ -79,7 +81,7 @@ struct LibraryView: View {
                 }
                 .menuStyle(.borderlessButton).padding(.horizontal, 10)
                 .help("Appearance").accessibilityLabel("Appearance: " + appearance.choice.title)
-                Button(action: settings) { Label("Keyboard shortcut…", systemImage: "keyboard") }
+                Button(action: settings) { Label("Settings…", systemImage: "gearshape") }
                     .buttonStyle(.plain).font(.system(size: 12)).foregroundStyle(Palette.body).padding(.horizontal, 10)
                 HStack(spacing: 7) {
                     Circle().fill(Palette.green).frame(width: 6, height: 6)
@@ -122,6 +124,7 @@ struct LibraryView: View {
             }.padding(.horizontal, 12).frame(height: 37)
                 .background(Palette.paper).clipShape(RoundedRectangle(cornerRadius: 6))
                 .overlay(RoundedRectangle(cornerRadius: 6).stroke(Palette.line, lineWidth: 1))
+            Button(action: record) { Label("Record", systemImage: "mic") }.buttonStyle(PaperButton(compact: true))
             Menu {
                 Button("Newest saved") { store.sortByEdited = false }
                 Button("Recently edited") { store.sortByEdited = true }
@@ -217,6 +220,7 @@ struct DetailView: View {
     @State private var editing = false
     @State private var editingNote: Annotation?
     @State private var copied = false
+    @State private var aiPrompt: String?
 
     private var note: String { store.annotationDrafts[item.id] ?? "" }
     private var noteBinding: Binding<String> {
@@ -229,6 +233,12 @@ struct DetailView: View {
                 Label(item.kind.label, systemImage: item.kind.symbol).font(.system(size: 12, weight: .medium)).foregroundStyle(Palette.muted)
                 Spacer()
                 if item.trashedAt == nil {
+                    Menu {
+                        Button("Summarize") { aiPrompt = "Summarize this item clearly and concisely." }
+                        Button("Bullet points") { aiPrompt = "Turn this item into concise bullet points, including any decisions and action items." }
+                        Button("Chat about this item") { aiPrompt = "" }
+                    } label: { Label("Ask AI", systemImage: "sparkles").font(.system(size: 12)) }
+                        .menuStyle(.borderlessButton).fixedSize()
                     IconButton(symbol: item.isPinned ? "pin.fill" : "pin", label: item.isPinned ? "Unpin item" : "Pin item", active: item.isPinned) { store.togglePin(item.id) }
                     IconButton(symbol: "square.and.pencil", label: "Edit item") { editing = true }
                     IconButton(symbol: "trash", label: "Move to Trash") { store.trash(item.id) }
@@ -255,9 +265,12 @@ struct DetailView: View {
                             }
                         }
                     }
+                    if let recording = item.recording {
+                        RecordingAttachmentView(store: store, item: item, attachment: recording)
+                    }
                     VStack(alignment: .leading, spacing: 10) {
                         HStack {
-                            Eyebrow(text: "Original content")
+                            Eyebrow(text: item.recording == nil ? "Original content" : "Transcript")
                             Spacer()
                             Button {
                                 copyToClipboard(item.content)
@@ -265,7 +278,7 @@ struct DetailView: View {
                             } label: { Label(copied ? "Copied" : "Copy", systemImage: copied ? "checkmark" : "doc.on.doc") }
                                 .buttonStyle(PaperButton(compact: true))
                         }
-                        Text(item.content)
+                        Text(item.content.isEmpty && item.recording != nil ? "Create a transcript above, or use Edit item to add your own text." : item.content)
                             .font(.system(size: 13, design: item.kind == .snippet ? .monospaced : .default))
                             .lineSpacing(5).textSelection(.enabled)
                             .frame(maxWidth: .infinity, alignment: .leading).fixedSize(horizontal: false, vertical: true)
@@ -328,6 +341,9 @@ struct DetailView: View {
                 }.padding(28)
             }
         }.frame(maxWidth: .infinity, maxHeight: .infinity).background(Palette.paper)
+            .sheet(isPresented: Binding(get: { aiPrompt != nil }, set: { if !$0 { aiPrompt = nil } })) {
+                AIChatView(store: store, item: item, initialPrompt: aiPrompt ?? "")
+            }
             .sheet(isPresented: $editing) { EditItemView(store: store, item: item) }
             .sheet(item: $editingNote) { annotation in EditAnnotationView(store: store, itemID: item.id, annotation: annotation) }
             .onChange(of: item.content) { _, _ in copied = false }

@@ -23,6 +23,7 @@ final class Database {
         self.url = url
         try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true,
                                                 attributes: [.posixPermissions: 0o700])
+        try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: url.deletingLastPathComponent().path)
         guard sqlite3_open_v2(url.path, &handle, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_FULLMUTEX, nil) == SQLITE_OK else {
             let error = failure()
             sqlite3_close(handle)
@@ -30,18 +31,18 @@ final class Database {
             throw error
         }
         do {
+            try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
             sqlite3_busy_timeout(handle, 3_000)
             var statement: OpaquePointer?
             guard sqlite3_prepare_v2(handle, "PRAGMA user_version", -1, &statement, nil) == SQLITE_OK else { throw failure() }
             let version = sqlite3_step(statement) == SQLITE_ROW ? sqlite3_column_int(statement, 0) : -1
             sqlite3_finalize(statement)
             guard version >= 0 else { throw failure() }
-            guard version <= 1 else { throw StorageError.newerVersion }
+            guard version <= 2 else { throw StorageError.newerVersion }
             try execute("PRAGMA journal_mode = WAL")
             try execute("PRAGMA synchronous = FULL")
             try execute("CREATE TABLE IF NOT EXISTS scraps (id TEXT PRIMARY KEY NOT NULL, payload BLOB NOT NULL)")
-            try execute("PRAGMA user_version = 1")
-            try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
+            if version == 0 { try execute("PRAGMA user_version = 1") }
         } catch {
             sqlite3_close(handle)
             handle = nil
@@ -70,6 +71,11 @@ final class Database {
 
     func save(_ item: Scrap) throws {
         let data = try JSONEncoder().encode(item)
+        try execute("BEGIN IMMEDIATE")
+        var committed = false
+        defer { if !committed { try? execute("ROLLBACK") } }
+        // Older builds must refuse a library once it contains audio attachments.
+        if item.recording != nil { try execute("PRAGMA user_version = 2") }
         var statement: OpaquePointer?
         let sql = "INSERT INTO scraps(id,payload) VALUES(?,?) ON CONFLICT(id) DO UPDATE SET payload=excluded.payload"
         guard sqlite3_prepare_v2(handle, sql, -1, &statement, nil) == SQLITE_OK else { throw failure() }
@@ -78,6 +84,8 @@ final class Database {
         guard sqlite3_bind_text(statement, 1, item.id.uuidString, -1, transient) == SQLITE_OK else { throw failure() }
         let bound = data.withUnsafeBytes { sqlite3_bind_blob(statement, 2, $0.baseAddress, Int32($0.count), transient) }
         guard bound == SQLITE_OK, sqlite3_step(statement) == SQLITE_DONE else { throw failure() }
+        try execute("COMMIT")
+        committed = true
     }
 
     private func execute(_ sql: String) throws {

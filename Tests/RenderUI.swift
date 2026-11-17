@@ -29,13 +29,19 @@ import SwiftUI
         store.draft.title = "A useful command"
         store.draft.content = "npm run dev"
         store.draft.tags = "dev, project-name"
+        let aiSettings = AISettings(defaults: UserDefaults(suiteName: "scraps-render-ai")!)
+        aiSettings.changeProvider(.openAIKey)
         for (name, appearance) in [("", NSAppearance.Name.aqua), ("-dark", .darkAqua)] {
             app.appearance = NSAppearance(named: appearance)
             try render(LibraryView(store: store, capture: {}), size: NSSize(width: 1200, height: 800), appearance: appearance, to: output.appendingPathComponent("library\(name).png"))
             try render(LibraryView(store: store, capture: {}), size: NSSize(width: 1040, height: 680), appearance: appearance, to: output.appendingPathComponent("library-minimum\(name).png"))
             try render(CaptureView(store: store, openLibrary: {}, didSave: {}), size: NSSize(width: 470, height: 620), appearance: appearance, to: output.appendingPathComponent("capture\(name).png"))
-            try render(SettingsView(), size: NSSize(width: 480, height: 350), appearance: appearance, to: output.appendingPathComponent("settings\(name).png"))
+            try render(SettingsView(), size: NSSize(width: 580, height: 500), appearance: appearance, to: output.appendingPathComponent("settings\(name).png"))
+            try render(AISettingsView().frame(width: 540, height: 440).background(Palette.canvas).foregroundStyle(Palette.ink), size: NSSize(width: 540, height: 440), appearance: appearance, to: output.appendingPathComponent("ai-settings\(name).png"))
+            try render(AISettingsView(settings: aiSettings).frame(width: 540, height: 440).background(Palette.canvas).foregroundStyle(Palette.ink), size: NSSize(width: 540, height: 440), appearance: appearance, to: output.appendingPathComponent("ai-settings-byok\(name).png"))
+            try render(RecordingView(recorder: RecordingController(store: store), openLibrary: {}), size: NSSize(width: 570, height: 550), appearance: appearance, to: output.appendingPathComponent("recording\(name).png"))
             if let item = store.selectedItem {
+                try render(AIChatView(store: store, item: item, initialPrompt: "Summarize this item."), size: NSSize(width: 720, height: 740), appearance: appearance, to: output.appendingPathComponent("ai-chat\(name).png"))
                 try render(EditItemView(store: store, item: item), size: NSSize(width: 690, height: 670), appearance: appearance, to: output.appendingPathComponent("edit-item\(name).png"))
                 if let annotation = item.annotations.first {
                     try render(EditAnnotationView(store: store, itemID: item.id, annotation: annotation), size: NSSize(width: 570, height: 340), appearance: appearance, to: output.appendingPathComponent("edit-note\(name).png"))

@@ -18,3 +18,11 @@ swiftc -swift-version 5 -parse-as-library \
   "$SCRAPS_ROOT/Sources/Shortcut.swift" "$SCRAPS_ROOT/Tests/ShortcutTests.swift" \
   -framework AppKit -framework Carbon -o "$SCRAPS_ROOT/build/ShortcutTests"
 "$SCRAPS_ROOT/build/ShortcutTests"
+swiftc -swift-version 5 -parse-as-library \
+  -module-cache-path "$SCRAPS_ROOT/build/module-cache" \
+  "$SCRAPS_ROOT/Sources/Models.swift" "$SCRAPS_ROOT/Sources/Database.swift" \
+  "$SCRAPS_ROOT/Sources/Store.swift" "$SCRAPS_ROOT/Sources/AI.swift" \
+  "$SCRAPS_ROOT/Sources/Recording.swift" "$SCRAPS_ROOT/Tests/FeatureTests.swift" \
+  -framework AVFoundation -framework ScreenCaptureKit -framework Speech -framework Security -lsqlite3 \
+  -o "$SCRAPS_ROOT/build/FeatureTests"
+"$SCRAPS_ROOT/build/FeatureTests"

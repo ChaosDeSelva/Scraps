@@ -1,6 +1,7 @@
 import AppKit
 import SwiftUI
 import Carbon
+import Combine
 
 @main struct ScrapsMain {
     @MainActor static func main() {
@@ -18,6 +19,9 @@ import Carbon
     private var popover = NSPopover()
     private var libraryWindow: NSWindow?
     private var settingsWindow: NSWindow?
+    private var recordingWindow: NSWindow?
+    private var recorder: RecordingController!
+    private var recordingObservation: AnyCancellable?
     private var hotKey: EventHotKeyRef?
     private var hotKeyHandler: EventHandlerRef?
     private var activeShortcut: CaptureShortcut?
@@ -30,8 +34,14 @@ import Carbon
                 .appendingPathComponent("Scraps-QA").appendingPathComponent("Scraps.sqlite")
             store = ScrapStore(url: url)
         } else { store = ScrapStore() }
+        recorder = RecordingController(store: store)
         configureMenu()
         configureStatusItem()
+        recordingObservation = recorder.$recording.sink { [weak self] active in
+            self?.statusItem.length = active ? NSStatusItem.variableLength : NSStatusItem.squareLength
+            self?.statusItem.button?.title = active ? " REC" : ""
+            self?.statusItem.button?.setAccessibilityLabel(active ? "Scraps recording audio" : "Scraps quick capture")
+        }
         configurePopover()
         configureShortcut()
         showLibrary()
@@ -66,6 +76,7 @@ import Carbon
         if NSApp.currentEvent?.type == .rightMouseUp {
             let menu = NSMenu()
             addItem("Quick capture", action: #selector(toggleCapture), to: menu)
+            addItem("Record audio…", action: #selector(showRecording), to: menu)
             addItem("Open library", action: #selector(showLibrary), to: menu)
             menu.addItem(appearanceMenuItem())
             addItem("Settings…", action: #selector(showSettings), to: menu)
@@ -118,7 +129,8 @@ import Carbon
             window.isReleasedWhenClosed = false
             window.delegate = self
             window.contentViewController = NSHostingController(rootView: LibraryView(store: store,
-                capture: { [weak self] in self?.toggleCapture() }, settings: { [weak self] in self?.showSettings() }))
+                capture: { [weak self] in self?.toggleCapture() }, settings: { [weak self] in self?.showSettings() },
+                record: { [weak self] in self?.showRecording() }))
             window.setFrameAutosaveName("ScrapsLibrary")
             window.center()
             libraryWindow = window
@@ -136,12 +148,37 @@ import Carbon
         NSWorkspace.shared.activateFileViewerSelecting([store.databaseURL])
     }
 
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        if recorder.hasWork {
+            recorder.message = "Stop and save the recording before quitting Scraps."
+            showRecording()
+            return .terminateCancel
+        }
+        return .terminateNow
+    }
+
+    @objc private func showRecording() {
+        popover.performClose(nil)
+        if recordingWindow == nil {
+            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 570, height: 550),
+                                  styleMask: [.titled, .closable], backing: .buffered, defer: false)
+            window.title = "Scraps Recording"
+            window.isReleasedWhenClosed = false
+            window.contentViewController = NSHostingController(rootView: RecordingView(recorder: recorder,
+                openLibrary: { [weak self] in self?.showLibrary() }))
+            window.center()
+            recordingWindow = window
+        }
+        NSApp.activate(ignoringOtherApps: true)
+        recordingWindow?.makeKeyAndOrderFront(nil)
+    }
+
     @objc private func quit() { NSApp.terminate(nil) }
 
     @objc private func showSettings() {
         popover.performClose(nil)
         if settingsWindow == nil {
-            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 480, height: 350),
+            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 580, height: 500),
                                   styleMask: [.titled, .closable], backing: .buffered, defer: false)
             window.title = "Scraps Settings"
             window.identifier = NSUserInterfaceItemIdentifier("ScrapsSettings")
@@ -171,6 +208,7 @@ import Carbon
         menu.addItem(fileRoot)
         addItem("Quick capture", action: #selector(toggleCapture), key: "n", to: file)
         addItem("Open library", action: #selector(showLibrary), key: "1", to: file)
+        addItem("Record audio…", action: #selector(showRecording), to: file)
         addItem("Show local data folder", action: #selector(revealData), to: file)
         let close = NSMenuItem(title: "Close window", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
         file.addItem(close)

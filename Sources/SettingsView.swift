@@ -5,10 +5,22 @@ import SwiftUI
 struct SettingsView: View {
     @ObservedObject private var appearance = AppearanceSettings.shared
     @ObservedObject private var shortcuts = ShortcutSettings.shared
+    @State private var section = "General"
     @State private var eventMonitor: Any?
     @State private var recordingError: String?
 
     var body: some View {
+        VStack(spacing: 0) {
+            Picker("Settings section", selection: $section) {
+                Text("General").tag("General")
+                Text("AI").tag("AI")
+            }.pickerStyle(.segmented).labelsHidden().padding(.horizontal, 24).padding(.top, 20)
+            if section == "General" { general }
+            else { AISettingsView() }
+        }.frame(width: 580, height: 500).background(Palette.canvas).foregroundStyle(Palette.ink)
+    }
+
+    private var general: some View {
         VStack(alignment: .leading, spacing: 24) {
             Text("Settings").font(.system(size: 24, weight: .bold))
             VStack(alignment: .leading, spacing: 10) {
@@ -42,7 +54,7 @@ struct SettingsView: View {
             Spacer(minLength: 0)
             Text("Changes are saved on this Mac.").font(.system(size: 11)).foregroundStyle(Palette.muted)
         }
-        .padding(28).frame(width: 480, height: 350).background(Palette.canvas).foregroundStyle(Palette.ink)
+        .padding(24).background(Palette.canvas).foregroundStyle(Palette.ink)
         .onDisappear(perform: stopRecording)
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didResignKeyNotification)) { notification in
             if (notification.object as? NSWindow)?.identifier?.rawValue == "ScrapsSettings" { stopRecording() }

@@ -13,4 +13,6 @@
 <key>LSUIElement</key><true/>
 <key>NSHighResolutionCapable</key><true/>
 <key>NSHumanReadableCopyright</key><string>Scraps — local notes and snippets.</string>
+<key>NSMicrophoneUsageDescription</key><string>Record audio you choose to save in your local Scraps library.</string>
+<key>NSAudioCaptureUsageDescription</key><string>Include Mac audio in a recording when you choose Mac audio or both sources.</string>
 </dict></plist>

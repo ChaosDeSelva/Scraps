@@ -23,3 +23,12 @@ xcuserdata/
 /local-data/
 /backups/
 /.private/
+
+*.caf
+*.m4a
+*.wav
+*.mp3
+/auth.json
+/credentials.json
+/.claude/
+/.codex/

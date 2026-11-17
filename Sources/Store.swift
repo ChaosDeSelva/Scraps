@@ -61,7 +61,7 @@ import Combine
     }
 
     @discardableResult func update(_ id: UUID, draft: CaptureDraft) -> Bool {
-        guard draft.canSave, var item = item(id) else { return false }
+        guard var item = item(id), draft.canSave || item.recording != nil else { return false }
         let revised = draft.makeItem()
         item.title = revised.title
         item.content = revised.content
@@ -105,6 +105,34 @@ import Combine
         guard var item = item(id) else { return }
         item.trashedAt = nil
         _ = persist(item)
+    }
+
+    var recordingsDirectory: URL { databaseURL.deletingLastPathComponent().appendingPathComponent("Recordings", isDirectory: true) }
+
+    func audioURL(_ recording: RecordingAttachment) -> URL {
+        recordingsDirectory.appendingPathComponent(recording.id.uuidString).appendingPathComponent("audio.m4a")
+    }
+
+    @discardableResult func saveRecording(_ attachment: RecordingAttachment, title: String, tags: String, startedAt: Date) -> UUID? {
+        guard FileManager.default.fileExists(atPath: audioURL(attachment).path) else {
+            errorMessage = "The recording file is missing. Your library has not been changed."
+            return nil
+        }
+        let clean = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let item = Scrap(title: clean.isEmpty ? "Recording " + startedAt.formatted(date: .abbreviated, time: .shortened) : clean,
+                         content: "", kind: .note, tags: CaptureDraft.parseTags(tags), source: attachment.source.title,
+                         createdAt: startedAt, recording: attachment)
+        guard persist(item) else { return nil }
+        filter = .recordings; query = ""; selectedID = item.id
+        return item.id
+    }
+
+    @discardableResult func saveTranscript(_ text: String, to id: UUID) -> Bool {
+        guard var item = item(id), item.recording != nil else { return false }
+        if item.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { item.content = text }
+        else { item.annotations.append(Annotation(text: "Transcript\n\n" + text)) }
+        item.updatedAt = Date()
+        return persist(item)
     }
 
     private func persist(_ item: Scrap) -> Bool {

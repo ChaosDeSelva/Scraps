@@ -157,7 +157,7 @@ struct EditItemView: View {
                 Button("Cancel") { if hasChanges { confirmDiscard = true } else { dismiss() } }
                     .buttonStyle(PaperButton()).keyboardShortcut(.cancelAction)
                 Button("Save changes") { if store.update(itemID, draft: draft) { dismiss() } }
-                    .buttonStyle(PaperButton(primary: true)).keyboardShortcut(.return, modifiers: .command).disabled(!draft.canSave)
+                    .buttonStyle(PaperButton(primary: true)).keyboardShortcut(.return, modifiers: .command).disabled(!draft.canSave && store.item(itemID)?.recording == nil)
             }
         }.padding(28).frame(width: 690, height: 670).background(Palette.canvas)
             .foregroundStyle(Palette.ink).interactiveDismissDisabled()
